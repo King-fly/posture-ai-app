@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @Environment(\.colorScheme) var colorScheme
     @ObservedObject var viewModel: AppViewModel
     
     var body: some View {

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct MonitorView: View {
+    @Environment(\.colorScheme) var colorScheme
     @ObservedObject var viewModel: AppViewModel
     
     var body: some View {
@@ -101,6 +102,7 @@ struct MonitorView: View {
 }
 
 struct StatCard: View {
+    @Environment(\.colorScheme) var colorScheme
     let title: String
     let value: String
     let valueColor: Color

@@ -13,8 +13,6 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		263008942F9062C6004A4859 /* posture-ai-app */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "posture-ai-app";
 			sourceTree = "<group>";
 		};

@@ -99,22 +99,22 @@ extension Color {
     }
 
     // Semantic Colors for Dark Mode Support
-    static let dsTextPrimary = Color.primary
-    static let dsTextSecondary = Color.secondary
-    static let dsBackground = Color(UIColor.systemBackground)
-    static let dsCardBackground = Color(UIColor.secondarySystemBackground)
-    static let dsBorder = Color(UIColor.separator)
+    static var dsTextPrimary: Color { Color.primary }
+    static var dsTextSecondary: Color { Color.secondary }
+    static var dsBackground: Color { Color(UIColor.systemBackground) }
+    static var dsCardBackground: Color { Color(UIColor.secondarySystemBackground) }
+    static var dsBorder: Color { Color(UIColor.separator) }
     
     // Core brand colors
-    static let dsGreen = Color(hex: "#58cc02")
-    static let dsGreenDark = Color(hex: "#58a700")
-    static let dsGreenLight = Color.green.opacity(0.15)
+    static var dsGreen: Color { Color(hex: "#58cc02") }
+    static var dsGreenDark: Color { Color(hex: "#58a700") }
+    static var dsGreenLight: Color { Color.green.opacity(0.15) }
     
-    static let dsBlue = Color(hex: "#1cb0f6")
-    static let dsBlueDark = Color(hex: "#1899d6")
-    static let dsBlueLight = Color.blue.opacity(0.15)
+    static var dsBlue: Color { Color(hex: "#1cb0f6") }
+    static var dsBlueDark: Color { Color(hex: "#1899d6") }
+    static var dsBlueLight: Color { Color.blue.opacity(0.15) }
     
-    static let dsRed = Color(hex: "#ff4b4b")
-    static let dsRedDark = Color(hex: "#ea1515")
-    static let dsYellow = Color(hex: "#ffc800")
+    static var dsRed: Color { Color(hex: "#ff4b4b") }
+    static var dsRedDark: Color { Color(hex: "#ea1515") }
+    static var dsYellow: Color { Color(hex: "#ffc800") }
 }

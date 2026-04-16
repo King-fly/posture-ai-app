@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(\.colorScheme) var colorScheme
     @StateObject private var viewModel = AppViewModel()
     @State private var selectedTab = 0
     
@@ -98,6 +99,7 @@ struct ContentView: View {
 }
 
 struct TabBarButton: View {
+    @Environment(\.colorScheme) var colorScheme
     let icon: String
     let title: String
     let isSelected: Bool

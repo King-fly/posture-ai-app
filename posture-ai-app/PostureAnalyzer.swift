@@ -39,79 +39,82 @@ class PostureAnalyzer: ObservableObject, CameraManagerDelegate {
             try handler.perform([faceRequest, bodyPoseRequest])
             
             var detected: PostureType = .good
-            
             let factor = 1.5 - settings.sensitivity
             
-            // 1. Analyze Body Pose
+            // 1. Analyze Face Landmarks (Always runs if face is detected)
+            if let faceResult = faceRequest.results?.first {
+                let faceWidth = faceResult.boundingBox.width
+                
+                let baseThreshold = 0.35 - (settings.distanceThreshold * 0.1)
+                if faceWidth > baseThreshold * factor {
+                    detected = .tooClose
+                }
+                
+                if detected == .good, let landmarks = faceResult.landmarks {
+                    if let leftEyebrow = landmarks.leftEyebrow?.normalizedPoints,
+                       let rightEyebrow = landmarks.rightEyebrow?.normalizedPoints {
+                        let innerLX = leftEyebrow.map { $0.x }.max() ?? 0
+                        let innerRX = rightEyebrow.map { $0.x }.min() ?? 1
+                        if abs(innerRX - innerLX) < (0.12 * factor) {
+                            detected = .frowning
+                        }
+                    }
+                    
+                    if detected == .good,
+                       let leftEye = landmarks.leftEye?.normalizedPoints,
+                       let rightEye = landmarks.rightEye?.normalizedPoints {
+                        let calcRatio = { (points: [CGPoint]) -> CGFloat in
+                            let maxY = points.map { $0.y }.max() ?? 0
+                            let minY = points.map { $0.y }.min() ?? 0
+                            let maxX = points.map { $0.x }.max() ?? 0
+                            let minX = points.map { $0.x }.min() ?? 0
+                            return (maxY - minY) / max(maxX - minX, 0.001)
+                        }
+                        
+                        let leftRatio = calcRatio(leftEye)
+                        let rightRatio = calcRatio(rightEye)
+                        
+                        if (leftRatio + rightRatio) / 2.0 < (0.15 * factor) {
+                            detected = .squinting
+                        }
+                    }
+                }
+            }
+            
+            // 2. Analyze Body Pose
             if let poseResult = bodyPoseRequest.results?.first {
                 do {
                     let leftShoulder = try poseResult.recognizedPoint(.leftShoulder)
                     let rightShoulder = try poseResult.recognizedPoint(.rightShoulder)
                     let nose = try poseResult.recognizedPoint(.nose)
-                    let leftEye = try poseResult.recognizedPoint(.leftEye)
-                    let rightEye = try poseResult.recognizedPoint(.rightEye)
                     
-                    if leftShoulder.confidence > 0.3 && rightShoulder.confidence > 0.3 && leftEye.confidence > 0.3 && rightEye.confidence > 0.3 {
-                        
-                        let eyeDistance = abs(leftEye.location.x - rightEye.location.x)
-                        distanceBuffer.append(eyeDistance)
-                        if distanceBuffer.count > 15 {
-                            distanceBuffer.removeFirst()
-                        }
-                        
-                        let avgEyeDist = distanceBuffer.reduce(0, +) / CGFloat(distanceBuffer.count)
-                        
-                        let baseThreshold = 0.15 - (settings.distanceThreshold * 0.1)
-                        let distanceThreshold = baseThreshold * factor
-                        
-                        // Distance check
-                        if avgEyeDist > distanceThreshold {
-                            detected = .tooClose
-                        }
-                        
-                        // Head tilt (y is upside down in Vision compared to Web: y=0 is bottom, y=1 is top)
-                        let eyeMidY = (leftEye.location.y + rightEye.location.y) / 2.0
+                    if leftShoulder.confidence > 0.3 && rightShoulder.confidence > 0.3 {
                         let shoulderMidY = (leftShoulder.location.y + rightShoulder.location.y) / 2.0
                         
-                        let headToShoulderDist = abs(eyeMidY - shoulderMidY)
-                        if headToShoulderDist < 0.15 * factor {
-                            detected = .headTilt
-                        }
-                        
-                        // Slouching (shoulder vertical diff)
                         let shoulderDiffY = abs(leftShoulder.location.y - rightShoulder.location.y)
-                        if shoulderDiffY > 0.05 * factor {
+                        if shoulderDiffY > 0.08 * factor {
                             detected = .slouching
                         }
                         
-                        // Leaning forward (nose too low compared to shoulders)
-                        // In vision, lower means closer to 0! Wait, top is 1, so nose should be > shoulder.
-                        // If nose is closer to shoulder, leaning forward.
-                        if nose.location.y < shoulderMidY + (0.05 / factor) {
-                            detected = .leaningForward
+                        // Body pose (structurally) overrides minor facial expressions except when perfectly good
+                        if detected == .good || detected == .frowning || detected == .squinting {
+                            if nose.confidence > 0.3 {
+                                let noseToShoulder = nose.location.y - shoulderMidY
+                                
+                                if noseToShoulder < 0.15 * factor {
+                                    detected = .headTilt
+                                } else if noseToShoulder < 0.22 * factor && faceRequest.results?.first?.boundingBox.width ?? 0 > 0.25 {
+                                    detected = .leaningForward
+                                }
+                            }
                         }
                     }
                 } catch {
-                    // Points not found, ignore frame
+                    // Missed points are ignored
                 }
             }
             
-            // 2. Analyze Face Landmarks for frowning/squinting
-            if detected == .good, let faceResult = faceRequest.results?.first, let landmarks = faceResult.landmarks {
-                if let leftEyebrow = landmarks.leftEyebrow?.normalizedPoints,
-                   let rightEyebrow = landmarks.rightEyebrow?.normalizedPoints {
-                    // Basic heuristic: distance between inner eyebrows for frowning
-                    if let innerL = leftEyebrow.last, let innerR = rightEyebrow.first {
-                        let distance = abs(innerL.x - innerR.x)
-                        // This threshold needs tuning, but acts as a stand-in
-                        if distance < 0.1 * factor {
-                            detected = .frowning
-                        }
-                    }
-                }
-            }
-            
-            // Temporal Smoothing (8 frames)
+            // Temporal Smoothing
             postureHistory.append(detected)
             if postureHistory.count > 8 {
                 postureHistory.removeFirst()
@@ -122,8 +125,10 @@ class PostureAnalyzer: ObservableObject, CameraManagerDelegate {
             }
             
             if let mostFrequent = counts.max(by: { $0.value < $1.value }), mostFrequent.value >= 5 {
-                DispatchQueue.main.async {
-                    self.currentPosture = mostFrequent.key
+                if currentPosture != mostFrequent.key {
+                    DispatchQueue.main.async {
+                        self.currentPosture = mostFrequent.key
+                    }
                 }
             }
             

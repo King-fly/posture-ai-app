@@ -32,6 +32,14 @@ class AppViewModel: ObservableObject {
     private let speechSynthesizer = AVSpeechSynthesizer()
     
     init() {
+        // Configure AVAudioSession for Voice Synthesis
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("Failed to setup audio session: \(error)")
+        }
+        
         // Load Settings
         if let data = UserDefaults.standard.data(forKey: "posture_settings"),
            let savedSettings = try? JSONDecoder().decode(PostureSettings.self, from: data) {
