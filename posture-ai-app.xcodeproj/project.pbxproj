@@ -63,7 +63,7 @@
 			fileSystemSynchronizedGroups = (
 				263008942F9062C6004A4859 /* posture-ai-app */,
 			);
-			name = "posture-ai-app";
+			name = "Posture";
 			productName = "posture-ai-app";
 			productReference = 263008922F9062C6004A4859 /* posture-ai-app.app */;
 			productType = "com.apple.product-type.application";
