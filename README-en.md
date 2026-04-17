@@ -10,7 +10,7 @@ Posture AI App 是一款基于iOS平台的姿势分析应用，使用Swift开发
 - 个性化设置
 - 直观的用户界面
 
-## Screenshots
+## 截图
 
 <img src="./docs/home.png" width="200"><img src="./docs/stats.png" width="200"><img src="./docs/settings.png" width="200">
 
